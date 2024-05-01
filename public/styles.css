@@ -1,0 +1,34 @@
+#canvas {
+    margin-left: auto;
+    margin-right: auto;
+    width: 800px; /* EDIT TO CHANGE WIDTH */
+    position: relative;
+}
+
+/* #canvas button {
+    margin: 0 5px;
+} */
+#canvas .svgContainer {
+    background-color: white; /* EDIT TO CHANGE BACKGROUND COLOR */
+    border: 2px solid black;
+    border-radius: 5px;
+    margin: 0 0 20px 0;
+    box-shadow: 5px 5px 5px rgb(51, 51, 51);
+    position: relative;
+}
+
+#canvas .svgElement {
+    text-align: center;
+    display: block;
+    width: 100%;
+    height: 600px; /* EDIT TO CHANGE HEIGHT */
+    white-space: pre;
+}
+
+#done, #clearButton, #undoButton {
+    white-space: nowrap;
+}
+
+.drawing-buttons {
+    width: 800px !important;   
+}
