@@ -2,6 +2,8 @@ import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import path from "path";
 import serveStatic = require("serve-static");
+import getTrial from "./load-trial";
+import { savePointsAOIs, getSubjectAndTrialList, generateCSV } from "./load-trial";
 
 dotenv.config();
 
@@ -9,6 +11,9 @@ const app: Express = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.static('public'));
+app.use(express.json(
+    { limit: '512mb' }
+));
 app.use(
     "/css",
     serveStatic(
@@ -26,8 +31,30 @@ app.use(
 app.set('view engine', 'pug');
 app.set('views', 'views');
 
-app.get("/", (req: Request, res: Response) => {
-    res.render('index', { title: 'Hey', message: 'Hello there!' });
+app.get("/", getSubjectAndTrialList, (req: Request, res: Response) => {
+    res.render('index', { title: 'AOI', message: 'AOI Painter', subjectList: JSON.parse(req.params.subjectList)});
+});
+
+app.get("/trial/:subjectId/:trialId", getTrial, (req: Request, res: Response) => {
+    res.render('trial', {
+        title: 'AOI',
+        message: 'AOI Painter',
+        trial: JSON.parse(req.params.trial),
+        subject: JSON.parse(req.params.subject),
+        svgPaths: req.params.svgPaths,
+        nextSubjectId: req.params.nextSubjectId,
+        nextTrialId: req.params.nextTrialId
+    
+    });
+});
+
+// save points and AOIs
+app.post("/save", savePointsAOIs, (req: Request, res: Response) => {
+    res.send({ ok: true });
+});
+
+app.post("/saveCSV", generateCSV, (req: Request, res: Response) => {
+    res.send({ ok: true });
 });
 
 app.listen(port, () => {

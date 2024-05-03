@@ -29,6 +29,6 @@
     white-space: nowrap;
 }
 
-.drawing-buttons {
+.drawing-buttons, .aoi-info, .warning-message {
     width: 800px !important;   
 }

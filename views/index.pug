@@ -4,28 +4,61 @@ html
     title= title
     link(rel="stylesheet", href="./css/bootstrap.min.css")
     script(src="./js/bootstrap.js", defer) 
-    script(src='/drawer.js', defer)
-    script(src='/script.js', defer)
     link(rel='stylesheet' href='/styles.css')
   body.container
     h1= message
-    #canvas
-        .svgContainer
-            svg.svgElement(xmlns="http://www.w3.org/2000/svg", version="1.1", x="0px", y="0px", viewBox="0 0 800 600")
-
-    .drawing-buttons.container
-        .row
-            .col-3.d-flex.gap-2
-                button.btn.btn-danger(type="button", data-bs-toggle="modal", style="height:38px", data-bs-target="#clearDrawing")
-                    svg(bi bi-trash, xmlns="http://www.w3.org/2000/svg", width="16", height="16", fill="currentColor", viewBox="0 0 16 16")
-                        path(d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z")
-                        path(d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11")
-                button.btn.btn-warning#undoButton(type="button", style="height:38px")
-                    svg(bi bi-arrow-counterclockwise, xmlns="http://www.w3.org/2000/svg", width="16", height="16", fill="currentColor", viewBox="0 0 16 16")
-                        path(fill-rule="evenodd", d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2z")
-                        path(d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466")
-            .col-6.d-flex.justify-content-center
-            .col-3.justify-content-end.d-flex
-                button.btn.btn-primary#done(type="button", style="height:38px")
-                    | Done
-    
+    .container
+      // save CSV button (will be done with event listener
+      button.btn.btn-primary#saveCSV(type="button") Save CSV
+      // loop through subjectList and make an accordion containing the trials
+      // if a subject is marked as "completed", add a badge, and fold the accordion
+      each subject in subjectList
+        - var classes = ['accordion-collapse', 'collapse']
+        - var headerClasses = ['accordion-header']
+        - var buttonClasses = ['accordion-button']
+        if subject.completed
+          - classes.push("collapsed")
+          - headerClasses.push("bg-success")
+          - buttonClasses.push("bg-success")
+        else 
+          - classes.push("show")
+          - headerClasses.push("bg-danger")
+          - buttonClasses.push("bg-danger")
+        .accordion(id="subject"+subject.subject)
+          .accordion-item
+            h2(class=headerClasses, id="headingOne" + subject.subject)
+              button(type="button", data-bs-toggle="collapse", data-bs-target="#collapse"+subject.subject, aria-expanded="true", aria-controls="collapse"+subject.subject, class=buttonClasses)
+                | Subject #{subject.subject}
+                if subject.completed
+                  span.badge.bg-success.mx-2 Completed
+            div(show id="collapse"+subject.subject, aria-labelledby="headingOne" + subject.subject, class=classes)
+              .accordion-body
+                // loop through the trials and make a card for each
+                each trial in subject.trials
+                  // and link to the trial page
+                  if trial.aois_saved
+                    a.btn.btn-success(href="/trial/"+subject.subject+"/"+trial.trial) Trial #{trial.trial}
+                  else
+                    a.btn.btn-danger(href="/trial/"+subject.subject+"/"+trial.trial) Trial #{trial.trial}
+    script. 
+      window.addEventListener('DOMContentLoaded', (event) => {
+        // add event listener to saveCSV button to post to /saveCSV
+        document.getElementById('saveCSV').addEventListener('click', function() {
+          fetch('/saveCSV', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+          })
+          .then(response => response.json())
+          .then(data => {
+            console.log('Success:', data);
+            alert("CSV saved successfully");
+          })
+          .catch((error) => {
+            console.error('Error:', error);
+            alert("Error saving CSV");
+          });
+        });
+      });

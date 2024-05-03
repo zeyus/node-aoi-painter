@@ -20,6 +20,10 @@ class Drawer {
     #pathStrokeWidth = "15"; // Edit this to change the stroke width
     #pathStrokeEnds = "round"; // Edit this to change the stroke ends
 
+    #updateCallback = null;
+
+    #aoi = "";
+
     /**
      * The SVG element that needs
      * @param {HTMLElement} SVGElement An SVG element to draw in
@@ -31,7 +35,7 @@ class Drawer {
      * @param {string} opts.strokeEnds The ends of the path
      * @param {number} opts.bufferSize The size of the buffer
      */
-    constructor(svgElement, opts = {readOnly: false, hiddenElement: null, pathColor: "#cb1212", strokeWidth: "15", strokeEnds: "round", bufferSize: 8}) {
+    constructor(svgElement, opts = {readOnly: false, hiddenElement: null, pathColor: "#cb1212", strokeWidth: "15", strokeEnds: "round", bufferSize: 8, updateCallback: null}) {
         this.#SVGElement = svgElement;
         this.#hiddenElement = opts.hiddenElement || this.#hiddenElement;
         this.#rect = svgElement.getBoundingClientRect();
@@ -40,6 +44,7 @@ class Drawer {
         this.#pathStrokeEnds = opts.strokeEnds || this.#pathStrokeEnds;
         this.#bufferSize = opts.bufferSize || this.#bufferSize;
         this.#readOnly = Object.prototype.hasOwnProperty.call(opts, 'readOnly') ? opts.readOnly : this.#readOnly;
+        this.#updateCallback = opts.updateCallback || this.#updateCallback;
         if (this.#readOnly !== true) {
             this.#SVGElement.addEventListener('mousedown', (event) => { this.startDraw(event) });
             this.#SVGElement.addEventListener('mousemove', (event) => { this.draw(event) });
@@ -51,6 +56,18 @@ class Drawer {
             });
         }
 
+    }
+
+    setAoi(aoi) {
+        this.#aoi = aoi;
+    }
+
+    setStrokeWidth(width) {
+        this.#pathStrokeWidth = width;
+    }
+
+    setStrokeColor(color) {
+        this.#pathColor = color;
     }
 
     /**
@@ -71,6 +88,7 @@ class Drawer {
         this.#strPath = "M" + pt.x + " " + pt.y;
         this.#path.setAttribute("d", this.#strPath);
         this.#path.setAttribute("data-is-user", "true")
+        this.#path.setAttribute("data-aoi", this.#aoi);
         this.#SVGElement.appendChild(this.#path);
     }
 
@@ -95,6 +113,12 @@ class Drawer {
             this.#userPaths.push(this.#path)
             this.#path = null;
             this.#saveState();
+            if (this.#updateCallback) {
+                // check if the callback is a function
+                if (typeof this.#updateCallback === 'function') {
+                    this.#updateCallback(this);
+                }
+            }
         }
     }
 
@@ -151,6 +175,10 @@ class Drawer {
         this.#clearState();
     }
 
+    getUserPaths() {
+        return this.#userPaths;
+    }
+
     /**
      * Saves the state of the SVG to the hidden input element
      *
@@ -164,6 +192,7 @@ class Drawer {
                 this.#hiddenElement.dispatchEvent(new Event('change'));
             });
         }
+        this.#updateCallback(this);
     }
 
     /**
@@ -176,6 +205,7 @@ class Drawer {
             this.#hiddenElement.value = "";
             this.#hiddenElement.dispatchEvent(new Event('change'));
         }
+        this.#updateCallback(this);
     }
 
     /**

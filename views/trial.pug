@@ -1,0 +1,97 @@
+doctype html
+html
+  head
+    title= title
+    link(rel="stylesheet", href="/css/bootstrap.min.css")
+    script(src="/js/bootstrap.js", defer) 
+    script(src='/drawer.js', defer)
+    script(src='/script.js', defer)
+    link(rel='stylesheet' href='/styles.css')
+  body.container
+    h1= message
+    // if the trial as marked with aois_saved, add a warning
+    .warning-message.container
+        // add progress bar striped
+        #progress.progress.d-none
+            .progress-bar.progress-bar-striped.progress-bar-animated.bg-success(role="progressbar", aria-valuenow="100", aria-valuemin="0", aria-valuemax="100", style="width: 100%")
+    if trial.aois_saved
+        .warning-message.container
+            .alert.alert-warning(role="alert")
+                b Warning: 
+                | AOIs have been saved for this trial. You can still draw on the canvas, but it will overwrite the saved AOIs.
+    #canvas
+        .svgContainer
+            svg.svgElement(xmlns="http://www.w3.org/2000/svg", version="1.1", x="0px", y="0px", viewBox="0 0 800 600")
+                | !{svgPaths}
+    .form#drawing-aois
+        .drawing-buttons.container
+            .row
+                .col-3.d-flex.gap-2
+                    button.btn.btn-danger#clearButton(type="button", style="height:38px")
+                        svg(bi bi-trash, xmlns="http://www.w3.org/2000/svg", width="16", height="16", fill="currentColor", viewBox="0 0 16 16")
+                            path(d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z")
+                            path(d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11")
+                    button.btn.btn-warning#undoButton(type="button", style="height:38px")
+                        svg(bi bi-arrow-counterclockwise, xmlns="http://www.w3.org/2000/svg", width="16", height="16", fill="currentColor", viewBox="0 0 16 16")
+                            path(fill-rule="evenodd", d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2z")
+                            path(d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466")
+                .col-6.d-flex.justify-content-center
+                    // size selector "small" "medium" "large" (default is large)
+                    span Size:
+                    .brush-group.btn-group.btn-group-toggle.mx-2
+                        input#sizeSelectorS.btn-check(type="radio", name="size", value="8", autocomplete="off")
+                        label.btn.btn-outline-secondary(for="sizeSelectorS") S
+                        input#sizeSelectorM.btn-check(type="radio", name="size", value="64", autocomplete="off")
+                        label.btn.btn-outline-secondary(for="sizeSelectorM") M
+                        input#sizeSelectorL.btn-check(type="radio", name="size", value="128", autocomplete="off" checked)
+                        label.btn.btn-outline-secondary(for="sizeSelectorL") L
+                    // buttton group for AIO type "head" "torso" "legs"
+                    span AOI:
+                    .aoi-group.btn-group.btn-group-toggle.mx-2(data-toggle="buttons")
+                        input#aoi-head.btn-check(type="radio", name="aoi", value="head", autocomplete="off" checked)
+                        label.btn.btn-outline-danger(for="aoi-head") Head
+                        input#aoi-torso.btn-check(type="radio", name="aoi", value="torso", autocomplete="off")
+                        label.btn.btn-outline-primary(for="aoi-torso") Torso
+                        input#aoi-legs.btn-check(type="radio", name="aoi", value="legs", autocomplete="off")
+                        label.btn.btn-outline-success(for="aoi-legs") Legs
+
+                .col-3.justify-content-end.d-flex
+                    button.btn.btn-primary#save(type="button", style="height:38px")
+                        | Save
+                    if nextSubjectId != ""
+                        if nextTrialId != ""
+                            a.btn.btn-success(href="/trial/" + nextSubjectId + "/" + nextTrialId, style="height:38px")
+                                | Next Trial
+        .aoi-info.container.my-4
+            .row
+                .col-4
+                    h5 Head
+                    p
+                        span#head-info 0
+                        | &nbsp;points
+                .col-4
+                    h5 Torso
+                    p
+                        span#torso-info 0
+                        | &nbsp;points
+                .col-4
+                    h5 Legs
+                    p
+                        span#legs-info 0
+                        | &nbsp;points
+        input(type="hidden", name="prolific_id", id="prolific_id", value=trial.prolific_id)
+        input(type="hidden", name="trial", id="trial", value=trial.trial)
+        - var n = trial.n
+        ul#trial-points.d-none
+            - var i = 1
+                while i <= n
+                    - var path = trial[i]
+                    - var np = path.n
+                    - var j = 1
+                    while j <= np
+                        - var point = path[j]
+                        li.trial-point(data-path-id=i, data-point-id=j, data-x=point.x, data-y=point.y, data-aoi=point.aoi)
+                        - j++
+                    - i++
+
+    
