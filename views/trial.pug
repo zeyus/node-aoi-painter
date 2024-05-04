@@ -3,11 +3,62 @@ html
   head
     title= title
     link(rel="stylesheet", href="/css/bootstrap.min.css")
-    script(src="/js/bootstrap.js", defer) 
+    script(src="/js/bootstrap.bundle.js", defer) 
     script(src='/drawer.js', defer)
     script(src='/script.js', defer)
     link(rel='stylesheet' href='/styles.css')
   body.container
+    // Bootstrap navbar with menu structure
+    // - Subjects (dropdown)
+    //   - subjectList.subject.subject (dropright, no href/link, green if subject.complete)
+    //     - subjectList.subject.trials.trial (link to trial page, green if trial.aois_saved)
+    .navbar.navbar-expand-lg.navbar-light.bg-light
+        .container-fluid
+            a.navbar-brand(href="/") AOI Drawer
+            button.navbar-toggler(type="button", data-bs-toggle="collapse", data-bs-target="#navbarNav", aria-controls="navbarNav", aria-expanded="false", aria-label="Toggle navigation")
+                span.navbar-toggler-icon
+            #navbarNav.collapse.navbar-collapse
+                ul.navbar-nav
+                    li.nav-item.dropdown
+                        a.nav-link.dropdown-toggle(href="#", id="navbarDropdown", role="button", data-bs-toggle="dropdown", aria-expanded="false") Subjects
+                        ul.dropdown-menu.hidden-scrollbar(aria-labelledby="navbarDropdown")
+                            each subject in subjectList
+                                if !subject.complete
+                                    - var classes = ['dropdown-item']
+                                    if subject.partial 
+                                        - classes.push("bg-warning")
+                                    else 
+                                        - classes.push("bg-danger")
+                                    li(class=classes, style="--bs-bg-opacity: 0.3;")
+                                        button.dropdown-item(type="button", data-bs-toggle="dropdown", aria-expanded="false") #{subject.subject}
+                                        ul.dropdown-menu.dropdown-submenu
+                                            each trial in subject.trials
+                                                - var classes = ['dropdown-item']
+                                                if trial.aois_saved
+                                                    - classes.push("bg-success")
+                                                else 
+                                                    - classes.push("bg-danger")
+                                                li(class=classes, style="--bs-bg-opacity: 0.3;")
+                                                    a.dropdown-item(href="/trial/" + subject.subject + "/" + trial.trial) Trial #{trial.trial}
+                    li.nav-item.dropdown
+                        a.nav-link.dropdown-toggle(href="#", id="navbarDropdown", role="button", data-bs-toggle="dropdown", aria-expanded="false") Completed
+                        ul.dropdown-menu.hidden-scrollbar(aria-labelledby="navbarDropdown")
+                            each subject in subjectList
+                                if subject.complete
+                                    - var classes = ['dropdown-item', 'bg-success']
+                                    li(class=classes, style="--bs-bg-opacity: 0.3;")
+                                        button.dropdown-item(type="button", data-bs-toggle="dropdown", aria-expanded="false") #{subject.subject}
+                                        ul.dropdown-menu.dropdown-submenu
+                                            each trial in subject.trials
+                                                - var classes = ['dropdown-item']
+                                                if trial.aois_saved
+                                                    - classes.push("bg-success")
+                                                else 
+                                                    - classes.push("bg-danger")
+                                                li(class=classes, style="--bs-bg-opacity: 0.3;")
+                                                    a.dropdown-item(href="/trial/" + subject.subject + "/" + trial.trial) Trial #{trial.trial}
+    
+    
     h1= message
     // if the trial as marked with aois_saved, add a warning
     .warning-message.container

@@ -43,8 +43,8 @@ app.get("/trial/:subjectId/:trialId", getTrial, (req: Request, res: Response) =>
         subject: JSON.parse(req.params.subject),
         svgPaths: req.params.svgPaths,
         nextSubjectId: req.params.nextSubjectId,
-        nextTrialId: req.params.nextTrialId
-    
+        nextTrialId: req.params.nextTrialId,
+        subjectList: JSON.parse(req.params.subjectList)
     });
 });
 

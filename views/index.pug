@@ -16,7 +16,7 @@ html
         - var classes = ['accordion-collapse', 'collapse']
         - var headerClasses = ['accordion-header']
         - var buttonClasses = ['accordion-button']
-        if subject.completed
+        if subject.complete
           - classes.push("collapsed")
           - headerClasses.push("bg-success")
           - buttonClasses.push("bg-success")
@@ -26,10 +26,10 @@ html
           - buttonClasses.push("bg-danger")
         .accordion(id="subject"+subject.subject)
           .accordion-item
-            h2(class=headerClasses, id="headingOne" + subject.subject)
-              button(type="button", data-bs-toggle="collapse", data-bs-target="#collapse"+subject.subject, aria-expanded="true", aria-controls="collapse"+subject.subject, class=buttonClasses)
+            h2(class=headerClasses, id="headingOne" + subject.subject, style="--bs-bg-opacity: 0.3;")
+              button(type="button", data-bs-toggle="collapse", data-bs-target="#collapse"+subject.subject, aria-expanded="true", aria-controls="collapse"+subject.subject, class=buttonClasses, style="--bs-bg-opacity: 0.3;")
                 | Subject #{subject.subject}
-                if subject.completed
+                if subject.complete
                   span.badge.bg-success.mx-2 Completed
             div(show id="collapse"+subject.subject, aria-labelledby="headingOne" + subject.subject, class=classes)
               .accordion-body
@@ -37,9 +37,9 @@ html
                 each trial in subject.trials
                   // and link to the trial page
                   if trial.aois_saved
-                    a.btn.btn-success(href="/trial/"+subject.subject+"/"+trial.trial) Trial #{trial.trial}
+                    a.btn.btn-success.m-2(href="/trial/"+subject.subject+"/"+trial.trial) Trial #{trial.trial}
                   else
-                    a.btn.btn-danger(href="/trial/"+subject.subject+"/"+trial.trial) Trial #{trial.trial}
+                    a.btn.btn-danger.m-2(href="/trial/"+subject.subject+"/"+trial.trial) Trial #{trial.trial}
     script. 
       window.addEventListener('DOMContentLoaded', (event) => {
         // add event listener to saveCSV button to post to /saveCSV
