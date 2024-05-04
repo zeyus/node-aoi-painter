@@ -43,6 +43,8 @@ function createDBSchema() {
         db.exec("CREATE INDEX IF NOT EXISTS idx_points_trial ON points(trial)");
         db.exec("CREATE INDEX IF NOT EXISTS idx_points_path_id ON points(path_id)");
         db.exec("CREATE INDEX IF NOT EXISTS idx_points_point_id ON points(point_id)");
+        // update AOIs set to 0 where null
+        db.exec("UPDATE trials SET aois_saved = 0 WHERE aois_saved IS NULL");
     });
 }
 function loadCsv() {
@@ -78,7 +80,7 @@ function loadCsv() {
                         trial: data.trial,
                         animal: data.animal,
                         action: data.action,
-                        aois_saved: false,
+                        aois_saved: 0,
                         stim_img: data.stim_img,
                         drawing_time: data.drawing_time,
                         start_timestamp: data.start_timestamp,
@@ -280,7 +282,7 @@ function buildTrialsFromDB() {
                     trial: row.trial,
                     animal: row.animal,
                     action: row.action,
-                    aois_saved: row.aois_saved || false, // for dev, column not in db
+                    aois_saved: row.aois_saved,
                     stim_img: row.stim_img,
                     drawing_time: row.drawing_time,
                     start_timestamp: row.start_timestamp,
@@ -454,6 +456,7 @@ const getTrial = (req, res, next) => {
             req.params.trial = JSON.stringify(trial);
             req.params.subject = JSON.stringify(subject);
             req.params.svgPaths = svgPathsFromTrial(trial);
+            req.params.subjectList = JSON.stringify(subjectList());
             next();
         }
         else {
@@ -520,28 +523,36 @@ const savePointsAOIs = (req, res, next) => {
     const updatestmt = db.prepare("UPDATE trials SET aois_saved = 1 WHERE prolific_id = @prolific_id AND trial = @trial");
     updatestmt.run({ prolific_id: prolific_id, trial: trial });
     // update the subject cache
-    subjects[`s${prolific_id}`][trial].aois_saved = true;
+    subjects[`s${prolific_id}`][trial].aois_saved = 1;
     next();
 };
 exports.savePointsAOIs = savePointsAOIs;
-function getSubjectAndTrialList(req, res, next) {
+function subjectList() {
     // just return a nested array of subject ids and trial ids and aois_saved
     // if all of a subject's trials have aois_saved, then the subject is marked as complete
-    const subjectList = [];
+    const subjectsTrials = [];
     for (const s of subjects.ids) {
         const subject = subjects[`s${s}`];
         const subjectTrials = [];
         let complete = true;
+        let completed = 0;
         for (const t of subject.trial_ids) {
             const trial = subject[t];
             subjectTrials.push({ trial: t, aois_saved: trial.aois_saved });
-            if (!trial.aois_saved) {
+            if (trial.aois_saved === 0) {
                 complete = false;
             }
+            else {
+                completed++;
+            }
+            // console.log(s, t, trial.aois_saved, complete);
         }
-        subjectList.push({ subject: s, trials: subjectTrials, complete: complete });
+        subjectsTrials.push({ subject: s, trials: subjectTrials, complete: complete, partial: completed > 0 });
     }
-    req.params.subjectList = JSON.stringify(subjectList);
+    return subjectsTrials;
+}
+function getSubjectAndTrialList(req, res, next) {
+    req.params.subjectList = JSON.stringify(subjectList());
     next();
 }
 exports.getSubjectAndTrialList = getSubjectAndTrialList;

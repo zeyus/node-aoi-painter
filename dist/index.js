@@ -29,7 +29,8 @@ app.get("/trial/:subjectId/:trialId", load_trial_1.default, (req, res) => {
         subject: JSON.parse(req.params.subject),
         svgPaths: req.params.svgPaths,
         nextSubjectId: req.params.nextSubjectId,
-        nextTrialId: req.params.nextTrialId
+        nextTrialId: req.params.nextTrialId,
+        subjectList: JSON.parse(req.params.subjectList)
     });
 });
 // save points and AOIs
