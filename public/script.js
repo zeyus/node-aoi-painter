@@ -57,6 +57,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
     const undoBtn = document.getElementById('undoButton');
     const saveBtn = document.getElementById('save');
     
+    const totalPointCount = document.getElementById('point-count');
     const headPointCount = document.getElementById('head-info');
 
     // Drawing controls
@@ -88,6 +89,9 @@ window.addEventListener('DOMContentLoaded', (event) => {
             aoi: aoi
         });
     });
+
+    // update the total point count
+    totalPointCount.innerText = allPoints.length;
 
 
     function onStopDraw(drawerobj) {

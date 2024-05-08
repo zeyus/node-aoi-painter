@@ -436,13 +436,13 @@ const getTrial = (req, res, next) => {
             let nextSubjectId = subjectId;
             // get the next trial from subject.trial_ids
             const nextTrialIndex = subject.trial_ids.indexOf(trialId) + 1;
-            if (nextTrialIndex < subject.trial_ids.length) {
+            if (nextTrialIndex <= subject.trial_ids.length) {
                 req.params.nextTrialId = `${subject.trial_ids[nextTrialIndex]}`;
             }
             else {
                 // get the next subject
                 const nextSubjectIndex = subjects.ids.indexOf(subjectId) + 1;
-                if (nextSubjectIndex < subjects.ids.length) {
+                if (nextSubjectIndex <= subjects.ids.length) {
                     nextSubjectId = subjects.ids[nextSubjectIndex];
                     req.params.nextTrialId = `${subjects[`s${nextSubjectId}`].trial_ids[0]}`;
                 }
@@ -477,12 +477,12 @@ const svgPathsFromTrial = (trial, strokeWidth = 2, strokeColor = "black", fillCo
     const n_paths = trial.n;
     let svgPaths = "";
     const pathTemplate = (pointString, strokeColor = "black", aoi = "") => `<path d="${pointString}" stroke="${strokeColor}" stroke-linecap="round" stroke-width="${strokeWidth}" fill="${fillColor}" data-aoi="${aoi}" />`;
-    for (let i = 1; i < n_paths; i++) {
+    for (let i = 1; i <= n_paths; i++) {
         const path = trial[i];
         const n_points = path.n;
         let pointArray = [];
         let currentAoi = "";
-        for (let j = 1; j < n_points; j++) {
+        for (let j = 1; j <= n_points; j++) {
             if (j === 1 || path[j].aoi !== currentAoi) {
                 currentAoi = path[j].aoi;
                 pointArray.push({ d: `M${path[j].x} ${path[j].y}`, aoi: currentAoi });
@@ -575,9 +575,9 @@ function generateCSV(req, res, next) {
         const subject = subjects[`s${s}`];
         for (const t of subject.trial_ids) {
             const trial = subject[t];
-            for (let i = 1; i < trial.n; i++) {
+            for (let i = 1; i <= trial.n; i++) {
                 const path = trial[i];
-                for (let j = 1; j < path.n; j++) {
+                for (let j = 1; j <= path.n; j++) {
                     const point = path[j];
                     data.push({
                         prolific_id: subject.prolific_id,
