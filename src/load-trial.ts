@@ -511,12 +511,12 @@ const getTrial = (req: Request, res: Response, next: NextFunction) => {
             let nextSubjectId = subjectId;
             // get the next trial from subject.trial_ids
             const nextTrialIndex = subject.trial_ids.indexOf(trialId) + 1;
-            if (nextTrialIndex <= subject.trial_ids.length) {
+            if (nextTrialIndex < subject.trial_ids.length) {
                 req.params.nextTrialId = `${subject.trial_ids[nextTrialIndex]}`;
             } else {
                 // get the next subject
                 const nextSubjectIndex = subjects.ids.indexOf(subjectId) + 1;
-                if (nextSubjectIndex <= subjects.ids.length) {
+                if (nextSubjectIndex < subjects.ids.length) {
                     nextSubjectId = subjects.ids[nextSubjectIndex];
                     req.params.nextTrialId = `${subjects[`s${nextSubjectId}`].trial_ids[0]}`;
                 } else {
