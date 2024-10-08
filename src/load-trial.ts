@@ -7,6 +7,7 @@ import path from 'path';
 import { Request, Response, NextFunction } from 'express';
 import { type Database as DB} from 'better-sqlite3';
 import Database from 'better-sqlite3';
+import colors from 'colors';
 
 // setup sqlite3 database
 async function openDb(): Promise<DB> {
@@ -89,7 +90,22 @@ interface Subjects {
     n: number;
 }
 
-const csvPath = path.join(__dirname, `../data/animalfeatures_2024-04-26_points.csv`);
+// find all CSV files in the data directory
+const availableCSVFiles = fs.readdirSync(path.join(__dirname, "../data")).filter((f) => f.endsWith('.csv'));
+
+// if none, error and exit
+if (availableCSVFiles.length === 0) {
+    console.error('\n\nERROR: No CSV files found in data directory!\n\n'.red);
+    process.exit(1);
+}
+
+// if more than one, warn, and use first
+if (availableCSVFiles.length > 1) {
+    console.warn('\n\nWARNING: More than one CSV file found in data directory, using first one!\n\n'.red);
+}
+const csvPath = path.join(__dirname, "../data", availableCSVFiles[0]);
+console.warn(colors.magenta("WARNING: Using csv file: %s\n\n"), csvPath);
+
 
 async function createDBSchema() {
         db.exec("CREATE TABLE IF NOT EXISTS subjects (prolific_id TEXT PRIMARY KEY, condition TEXT, input_device TEXT, drawing_skills INTEGER)");
@@ -453,44 +469,50 @@ openDb().then((database) => {
     db = database;
     db.pragma('journal_mode = WAL');
     console.log('db opened');
+    console.warn('\n\nPlease wait, this might take a while...\n\n'.magenta);
 
     createDBSchema().then(() => {
-            console.log('db schema created');
+            console.log('\t=> db schema created'.yellow);
             // first try to build the subjects from the database
             buildSubjectsFromDB().then(() => {
-                console.log('subjects built from db');
+                console.log('\t=> subjects built from db'.yellow);
                 buildTrialsFromDB().then(() => {
-                    console.log('trials built from db');
+                    console.log('\t=> trials built from db'.yellow);
                     buildPathsFromDB().then(() => {
-                        console.log('paths built from db');
+                        console.log('\t=> paths built from db'.yellow);
                         buildPointsFromDB().then(() => {
-                            console.log('points built from db');
+                            console.log('\t=> points built from db'.yellow);
                             // if no subjects are found in the database, load them from the csv file
                             if (subjects.n === 0) {
-                                console.log('no subjects found in db, loading from csv');
+                                console.log('\t=> no subjects found in db, loading from csv'.yellow);
                                 loadCsv().then((data) => {
                                     subjects = data;
                                 }).then(() => {
                                     const subjectArray: Subject[] = subjects.ids.map((id: string) => subjects[`s${id}`]);
                                     addSubjects(subjectArray).then(() => {
-                                        console.log('subjects added to db');
+                                        console.log('\t=> subjects added to db'.yellow);
                                         const trialArray: Trial[] = subjects.ids.flatMap((id: string) => subjects[`s${id}`].trial_ids.map((tid: number) => subjects[`s${id}`][tid]));
                                         addTrials(trialArray).then(() => {
-                                            console.log('trials added to db');
+                                            console.log('\t=> trials added to db'.yellow);
                                             const pathArray: Path[] = trialArray.flatMap((t: Trial) => Object.values(t).filter((p) => p.path_id !== undefined));
                                             addPath(pathArray).then(() => {
-                                                console.log('paths added to db');
+                                                console.log('\t=> paths added to db'.yellow);
                                                 // we know the numeric keys are the points
                                                 const pointArray: Point[] = pathArray.flatMap((p: Path) => Object.values(p).filter((p) => p.x !== undefined));
                                                 addPoints(pointArray).then(() => {
-                                                    console.log('points added to db');
+                                                    console.log('\t=> points added to db'.yellow);
                                                 });
                                             });
                                         });
                                     });
                                 });
                             }
-                        });
+                        }).then(() => {
+                            console.log('\n\nserver is ready:'.green);
+                            console.log('http://localhost:3000'.green.underline);
+                            console.log('\n\n');
+                        }
+                        );
                     });
                 });
             });
@@ -525,16 +547,18 @@ const getTrial = (req: Request, res: Response, next: NextFunction) => {
                 }
             }
             req.params.nextSubjectId = nextSubjectId;
-            console.log('trial found');
+            console.log(colors.green('Found trial for subject: %s, trial: %s'), subjectId, trialId);
             req.params.trial = JSON.stringify(trial);
             req.params.subject = JSON.stringify(subject);
             req.params.svgPaths = svgPathsFromTrial(trial);
             req.params.subjectList = JSON.stringify(subjectList());
             next();
         } else {
+            console.log(colors.red('Trial not found for subject: %s, trial: %s'), subjectId, trialId);
             res.status(404).send('Trial not found');
         }
     } else {
+        console.log(colors.red('Subject not found: %s'), subjectId);
         res.status(404).send('Subject not found');
     }
 
@@ -588,11 +612,11 @@ const savePointsAOIs = (req: Request, res: Response, next: NextFunction) => {
     const prolific_id = req.body.prolific_id;
     const trial = req.body.trial;
     // reset ALL point AOIs for this trial
-    console.log('resetting all points for trial: ', trial, ' for subject: ', prolific_id);
+    console.log(colors.yellow('resetting all points for trial: %s for subject %s ...'), trial, prolific_id);
     const resetstmt = db.prepare("UPDATE points SET aoi = '' WHERE prolific_id = @prolific_id AND trial = @trial");
     resetstmt.run({prolific_id: prolific_id, trial: trial});
-    console.log('points reset');
-    console.log('saving points');
+    console.log('points reset'.yellow);
+    console.log('saving points'.yellow);
     const stmt = db.prepare("UPDATE points SET aoi = @aoi WHERE prolific_id = @prolific_id AND trial = @trial AND path_id = @path_id AND point_id = @point_id");
     const updateMany = db.transaction((points: Point[]) => {
         for (const p of points) {
@@ -601,15 +625,16 @@ const savePointsAOIs = (req: Request, res: Response, next: NextFunction) => {
     });
 
     updateMany(points);
-    console.log('points saved, rebuilding cache');
+    console.log('points saved, rebuilding cache'.green);
     buildPointsForTrialFromDB(prolific_id, trial).then(() => {
-        console.log('cache rebuilt');
+        console.log('cache rebuilt'.green);
     });
-    console.log('marking trial as having AOIs saved');
+    console.log('marking trial as having AOIs saved'.yellow);
     const updatestmt = db.prepare("UPDATE trials SET aois_saved = 1 WHERE prolific_id = @prolific_id AND trial = @trial");
     updatestmt.run({prolific_id: prolific_id, trial: trial});
     // update the subject cache
     subjects[`s${prolific_id}`][trial].aois_saved = 1;
+    console.log('trial marked as having AOIs saved'.green);
     next();
 }
 
@@ -684,7 +709,7 @@ function generateCSV(req: Request, res: Response, next: NextFunction) {
     }
 
     csvWriter.writeRecords(data).then(() => {
-        console.log('CSV written');
+        console.log('CSV written'.yellow);
     });
 
     next();

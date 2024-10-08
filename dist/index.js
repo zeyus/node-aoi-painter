@@ -13,7 +13,7 @@ dotenv_1.default.config();
 const app = (0, express_1.default)();
 const port = process.env.PORT || 3000;
 app.use(express_1.default.static('public'));
-app.use(express_1.default.json({ limit: '512mb' }));
+app.use(express_1.default.json({ limit: '1024mb' }));
 app.use("/css", serveStatic(path_1.default.join(__dirname, "../node_modules/bootstrap/dist/css"), { setHeaders: setMimeType }));
 app.use("/js", serveStatic(path_1.default.join(__dirname, "../node_modules/bootstrap/dist/js"), { setHeaders: setMimeType }));
 app.set('view engine', 'pug');
@@ -41,8 +41,7 @@ app.post("/saveCSV", load_trial_2.generateCSV, (req, res) => {
     res.send({ ok: true });
 });
 app.listen(port, () => {
-    console.log(`[server]: Server is running at http://localhost:${port}`);
-    console.log(path_1.default.join(__dirname, "../node_modules/bootstrap/dist/js"));
+    console.log(`[server]: Express server started on port ${port}`);
 });
 function setMimeType(res, path) {
     if (res.getHeader('Content-Type') !== undefined) {

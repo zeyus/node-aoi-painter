@@ -12,7 +12,7 @@ const port = process.env.PORT || 3000;
 
 app.use(express.static('public'));
 app.use(express.json(
-    { limit: '512mb' }
+    { limit: '1024mb' }
 ));
 app.use(
     "/css",
@@ -58,8 +58,7 @@ app.post("/saveCSV", generateCSV, (req: Request, res: Response) => {
 });
 
 app.listen(port, () => {
-  console.log(`[server]: Server is running at http://localhost:${port}`);
-  console.log(path.join(__dirname, "../node_modules/bootstrap/dist/js"));
+  console.log(`[server]: Express server started on port ${port}`);
 });
 
 function setMimeType(res: Response, path: string) {
