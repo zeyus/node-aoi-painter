@@ -91,7 +91,7 @@ interface Subjects {
 }
 
 // find all CSV files in the data directory
-const availableCSVFiles = fs.readdirSync(path.join(__dirname, "../data")).filter((f) => f.endsWith('.csv'));
+const availableCSVFiles = fs.readdirSync(path.join(__dirname, "../data")).filter((f) => f.endsWith('.csv') && !f.startsWith('animalfeatures_aois_out'));
 
 // if none, error and exit
 if (availableCSVFiles.length === 0) {
@@ -672,8 +672,11 @@ function getSubjectAndTrialList(req: Request, res: Response, next: NextFunction)
 
 function generateCSV(req: Request, res: Response, next: NextFunction) {
     const csv = require('csv-writer').createObjectCsvWriter;
+    const file_date_time = new Date().toISOString().replace(/:/g, '-').replace('T', '_').split('.')[0];
+    const filename = `data/animalfeatures_aois_out_${file_date_time}.csv`;
+    console.log(colors.yellow('generating csv file: %s'), filename);
     const csvWriter = csv({
-        path: 'data/animalfeatures_aois_out.csv',
+        path: filename,
         header: [
             {id: 'prolific_id', title: 'Prolific ID'},
             {id: 'trial', title: 'Trial'},
@@ -709,7 +712,7 @@ function generateCSV(req: Request, res: Response, next: NextFunction) {
     }
 
     csvWriter.writeRecords(data).then(() => {
-        console.log('CSV written'.yellow);
+        console.log('CSV written'.green);
     });
 
     next();
