@@ -8,6 +8,7 @@ import { Request, Response, NextFunction } from 'express';
 import { type Database as DB} from 'better-sqlite3';
 import Database from 'better-sqlite3';
 import colors from 'colors';
+import { performance } from 'perf_hooks';
 
 // setup sqlite3 database
 async function openDb(): Promise<DB> {
@@ -130,7 +131,7 @@ async function createDBSchema() {
 }
 
 async function loadCsv(): Promise<Subjects> {
-    console.log('loading csv');
+    console.log('\t=> loading csv'.yellow);
     const subjects: Subjects = {
         n: 0,
         ids: [],
@@ -208,7 +209,7 @@ async function loadCsv(): Promise<Subjects> {
                 path.n++;
             })
             .on('end', () => {
-                console.log('CSV file successfully processed');
+                console.log('\t=> CSV file successfully processed'.yellow);
                 resolve(subjects);
             });
     });
@@ -470,49 +471,100 @@ openDb().then((database) => {
     db.pragma('journal_mode = WAL');
     console.log('db opened');
     console.warn('\n\nPlease wait, this might take a while...\n\n'.magenta);
-
+    performance.mark('schema_start');
     createDBSchema().then(() => {
-            console.log('\t=> db schema created'.yellow);
+            performance.mark('schema_end');
+            performance.measure('schema', 'schema_start', 'schema_end');
+            const measure = performance.getEntriesByName('schema')[0];
+            console.log(colors.yellow('\t=> db schema created in %s ms'), measure.duration);
+            performance.mark('build_subj_start');
             // first try to build the subjects from the database
             buildSubjectsFromDB().then(() => {
-                console.log('\t=> subjects built from db'.yellow);
+                performance.mark('build_subj_end');
+                performance.measure('build_subj', 'build_subj_start', 'build_subj_end');
+                const measure = performance.getEntriesByName('build_subj')[0];
+                console.log(colors.yellow('\t=> subjects built from db in %s ms'), measure.duration);
+                performance.mark('build_trials_start');
                 buildTrialsFromDB().then(() => {
-                    console.log('\t=> trials built from db'.yellow);
+                    performance.mark('build_trials_end');
+                    performance.measure('build_trials', 'build_trials_start', 'build_trials_end');
+                    const measure = performance.getEntriesByName('build_trials')[0];
+                    console.log(colors.yellow('\t=> trials built from db in %s ms'), measure.duration);
+                    performance.mark('build_paths_start');
                     buildPathsFromDB().then(() => {
-                        console.log('\t=> paths built from db'.yellow);
+                        performance.mark('build_paths_end');
+                        performance.measure('build_paths', 'build_paths_start', 'build_paths_end');
+                        const measure = performance.getEntriesByName('build_paths')[0];
+                        console.log(colors.yellow('\t=> paths built from db in %s ms'), measure.duration);
+                        performance.mark('build_points_start');
                         buildPointsFromDB().then(() => {
-                            console.log('\t=> points built from db'.yellow);
+                            performance.mark('build_points_end');
+                            performance.measure('build_points', 'build_points_start', 'build_points_end');
+                            const measure = performance.getEntriesByName('build_points')[0];
+                            console.log(colors.yellow('\t=> points built from db in %s ms'), measure.duration);
+
                             // if no subjects are found in the database, load them from the csv file
                             if (subjects.n === 0) {
                                 console.log('\t=> no subjects found in db, loading from csv'.yellow);
+                                performance.mark('load_csv_start');
                                 loadCsv().then((data) => {
+                                    performance.mark('load_csv_end');
+                                    performance.measure('load_csv', 'load_csv_start', 'load_csv_end');
+                                    const measure = performance.getEntriesByName('load_csv')[0];
+                                    console.log(colors.yellow('\t=> subjects loaded from csv in %s ms'), measure.duration);
                                     subjects = data;
+                                    
                                 }).then(() => {
                                     const subjectArray: Subject[] = subjects.ids.map((id: string) => subjects[`s${id}`]);
+                                    performance.mark('add_subj_start');
                                     addSubjects(subjectArray).then(() => {
-                                        console.log('\t=> subjects added to db'.yellow);
+                                        performance.mark('add_subj_end');
+                                        performance.measure('add_subj', 'add_subj_start', 'add_subj_end');
+                                        const measure = performance.getEntriesByName('add_subj')[0];
+                                        console.log(colors.yellow('\t=> subjects added to db in %s ms'), measure.duration);
                                         const trialArray: Trial[] = subjects.ids.flatMap((id: string) => subjects[`s${id}`].trial_ids.map((tid: number) => subjects[`s${id}`][tid]));
+                                        performance.mark('add_trials_start');
+
                                         addTrials(trialArray).then(() => {
-                                            console.log('\t=> trials added to db'.yellow);
+                                            performance.mark('add_trials_end');
+                                            performance.measure('add_trials', 'add_trials_start', 'add_trials_end');
+                                            const measure = performance.getEntriesByName('add_trials')[0];
+                                            console.log(colors.yellow('\t=> trials added to db in %s ms'), measure.duration);
+
                                             const pathArray: Path[] = trialArray.flatMap((t: Trial) => Object.values(t).filter((p) => p.path_id !== undefined));
+
+                                            performance.mark('add_paths_start');
                                             addPath(pathArray).then(() => {
-                                                console.log('\t=> paths added to db'.yellow);
+                                                performance.mark('add_paths_end');
+                                                performance.measure('add_paths', 'add_paths_start', 'add_paths_end');
+                                                const measure = performance.getEntriesByName('add_paths')[0];
+                                                console.log(colors.yellow('\t=> paths added to db in %s ms'), measure.duration);
                                                 // we know the numeric keys are the points
                                                 const pointArray: Point[] = pathArray.flatMap((p: Path) => Object.values(p).filter((p) => p.x !== undefined));
+
+                                                performance.mark('add_points_start');
                                                 addPoints(pointArray).then(() => {
-                                                    console.log('\t=> points added to db'.yellow);
+                                                    performance.mark('add_points_end');
+                                                    performance.measure('add_points', 'add_points_start', 'add_points_end');
+                                                    const measure = performance.getEntriesByName('add_points')[0];
+                                                    console.log(colors.yellow('\t=> points added to db in %s ms'), measure.duration);
+                                                }).then(() => {
+                                                    console.log('\n\nserver is ready:'.green);
+                                                    console.log('http://localhost:3000'.green.underline);
+                                                    console.log('\n\n');
                                                 });
                                             });
                                         });
                                     });
                                 });
+                            } else {
+                                console.log('\t=> subjects found in db, skipping csv load'.yellow);
+                                console.log('\n\nserver is ready:'.green);
+                                console.log('http://localhost:3000'.green.underline);
+                                console.log('\n\n');
+                                
                             }
-                        }).then(() => {
-                            console.log('\n\nserver is ready:'.green);
-                            console.log('http://localhost:3000'.green.underline);
-                            console.log('\n\n');
-                        }
-                        );
+                        });
                     });
                 });
             });
@@ -523,6 +575,8 @@ openDb().then((database) => {
 const getTrial = (req: Request, res: Response, next: NextFunction) => {
     const subjectId: string = req.params.subjectId;
     const trialId: number = parseInt(req.params.trialId);
+
+    performance.mark('get_trial_start');
 
     if (subjects[`s${subjectId}`]) {
         const subject: Subject = subjects[`s${subjectId}`];
@@ -552,6 +606,10 @@ const getTrial = (req: Request, res: Response, next: NextFunction) => {
             req.params.subject = JSON.stringify(subject);
             req.params.svgPaths = svgPathsFromTrial(trial);
             req.params.subjectList = JSON.stringify(subjectList());
+            performance.mark('get_trial_end');
+            performance.measure('get_trial', 'get_trial_start', 'get_trial_end');
+            const measure = performance.getEntriesByName('get_trial')[0];
+            console.log(colors.yellow('\t=> trial loaded in %s ms'), measure.duration);
             next();
         } else {
             console.log(colors.red('Trial not found for subject: %s, trial: %s'), subjectId, trialId);
@@ -582,13 +640,18 @@ const aoiColors: AOIColors = {
 const svgPathsFromTrial = (trial: Trial, strokeWidth: number = 2, strokeColor: string = "black", fillColor: string = "none") => {
     const n_paths = trial.n;
     let svgPaths = "";
+    performance.mark('svg_paths_start');
+    let totalPoints = 0;
+    let totalPaths = 0;
     const pathTemplate = (pointString: string, strokeColor: string = "black", aoi: string = "") => `<path d="${pointString}" stroke="${strokeColor}" stroke-linecap="round" stroke-width="${strokeWidth}" fill="${fillColor}" data-aoi="${aoi}" />`;
     for (let i = 1; i <= n_paths; i++) {
+        totalPaths++;
         const path = trial[i];
         const n_points = path.n;
         let pointArray: DPath[] = [];
         let currentAoi = "";
         for (let j = 1; j <= n_points; j++) {
+            totalPoints++;
             if (j === 1 || path[j].aoi !== currentAoi) {
                 currentAoi = path[j].aoi;
                 pointArray.push({ d: `M${path[j].x} ${path[j].y}`, aoi: currentAoi });
@@ -601,6 +664,10 @@ const svgPathsFromTrial = (trial: Trial, strokeWidth: number = 2, strokeColor: s
             svgPaths += pathTemplate(p.d, aoiColors[p.aoi], p.aoi);
         }
     }
+    performance.mark('svg_paths_end');
+    performance.measure('svg_paths', 'svg_paths_start', 'svg_paths_end');
+    const measure = performance.getEntriesByName('svg_paths')[0];
+    console.log(colors.yellow('\t=> %d svg paths generated with %d points in %s ms'), totalPaths, totalPoints, measure.duration);
 
     return svgPaths;
 }
@@ -611,30 +678,49 @@ const savePointsAOIs = (req: Request, res: Response, next: NextFunction) => {
     const points: Point[] = req.body.points;
     const prolific_id = req.body.prolific_id;
     const trial = req.body.trial;
+    performance.mark('reset_points_start');
     // reset ALL point AOIs for this trial
     console.log(colors.yellow('resetting all points for trial: %s for subject %s ...'), trial, prolific_id);
     const resetstmt = db.prepare("UPDATE points SET aoi = '' WHERE prolific_id = @prolific_id AND trial = @trial");
     resetstmt.run({prolific_id: prolific_id, trial: trial});
-    console.log('points reset'.yellow);
+    performance.mark('reset_points_end');
+    performance.measure('reset_points', 'reset_points_start', 'reset_points_end');
+    const measure = performance.getEntriesByName('reset_points')[0];
+    console.log(colors.yellow('\t=> points reset in %s ms'), measure.duration);
     console.log('saving points'.yellow);
+    performance.mark('save_points_start');
+    let totalPoints = 0;
     const stmt = db.prepare("UPDATE points SET aoi = @aoi WHERE prolific_id = @prolific_id AND trial = @trial AND path_id = @path_id AND point_id = @point_id");
     const updateMany = db.transaction((points: Point[]) => {
         for (const p of points) {
+            totalPoints++;
             stmt.run({prolific_id: prolific_id, trial: trial, path_id: p.path_id, point_id: p.point_id, aoi: p.aoi});
         }
     });
-
     updateMany(points);
+    performance.mark('save_points_end');
+    performance.measure('save_points', 'save_points_start', 'save_points_end');
+    const measure2 = performance.getEntriesByName('save_points')[0];
+    console.log(colors.yellow('\t=> %d points saved in %s ms'), totalPoints, measure2.duration);
     console.log('points saved, rebuilding cache'.green);
+    performance.mark('rebuild_cache_start');
     buildPointsForTrialFromDB(prolific_id, trial).then(() => {
-        console.log('cache rebuilt'.green);
+        performance.mark('rebuild_cache_end');
+        performance.measure('rebuild_cache', 'rebuild_cache_start', 'rebuild_cache_end');
+        const measure = performance.getEntriesByName('rebuild_cache')[0];
+
+        console.log(colors.green('\t=> cache rebuilt in %s ms'), measure.duration);
     });
     console.log('marking trial as having AOIs saved'.yellow);
+    performance.mark('mark_trial_start');
     const updatestmt = db.prepare("UPDATE trials SET aois_saved = 1 WHERE prolific_id = @prolific_id AND trial = @trial");
     updatestmt.run({prolific_id: prolific_id, trial: trial});
+    performance.mark('mark_trial_end');
+    performance.measure('mark_trial', 'mark_trial_start', 'mark_trial_end');
+    const measure3 = performance.getEntriesByName('mark_trial')[0];
+    console.log(colors.green('\t=> trial marked as having AOIs saved in %s ms'), measure3.duration);
     // update the subject cache
     subjects[`s${prolific_id}`][trial].aois_saved = 1;
-    console.log('trial marked as having AOIs saved'.green);
     next();
 }
 
@@ -675,6 +761,7 @@ function generateCSV(req: Request, res: Response, next: NextFunction) {
     const file_date_time = new Date().toISOString().replace(/:/g, '-').replace('T', '_').split('.')[0];
     const filename = `data/animalfeatures_aois_out_${file_date_time}.csv`;
     console.log(colors.yellow('generating csv file: %s'), filename);
+    performance.mark('generate_csv_start');
     const csvWriter = csv({
         path: filename,
         header: [
@@ -712,7 +799,11 @@ function generateCSV(req: Request, res: Response, next: NextFunction) {
     }
 
     csvWriter.writeRecords(data).then(() => {
-        console.log('CSV written'.green);
+        performance.mark('generate_csv_end');
+        performance.measure('generate_csv', 'generate_csv_start', 'generate_csv_end');
+
+        const measure = performance.getEntriesByName('generate_csv')[0];
+        console.log(colors.green('\t=> csv generated in %s ms'), measure.duration);
     });
 
     next();
