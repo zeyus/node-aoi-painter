@@ -26,7 +26,11 @@ const perf_hooks_1 = require("perf_hooks");
 // setup sqlite3 database
 function openDb() {
     return __awaiter(this, void 0, void 0, function* () {
-        return new better_sqlite3_1.default('./data/animalfeatures_points.db');
+        const db = new better_sqlite3_1.default('./data/animalfeatures_points.db');
+        db.pragma('journal_mode = WAL');
+        // set cache to 1GB (in kibibytes)
+        db.pragma('cache_size = -1000000');
+        return db;
     });
 }
 let db;
@@ -397,7 +401,6 @@ function buildPointsForTrialFromDB(prolific_id, trial) {
 }
 openDb().then((database) => {
     db = database;
-    db.pragma('journal_mode = WAL');
     console.log('db opened');
     console.warn('\n\nPlease wait, this might take a while...\n\n'.magenta);
     perf_hooks_1.performance.mark('schema_start');
@@ -602,7 +605,7 @@ const savePointsAOIs = (req, res, next) => {
     const updateMany = db.transaction((points) => {
         for (const p of points) {
             totalPoints++;
-            stmt.run({ prolific_id: prolific_id, trial: trial, path_id: p.path_id, point_id: p.point_id, aoi: p.aoi });
+            stmt.run({ prolific_id: prolific_id, trial: parseInt(trial), path_id: p.path_id, point_id: p.point_id, aoi: p.aoi });
         }
     });
     updateMany(points);
