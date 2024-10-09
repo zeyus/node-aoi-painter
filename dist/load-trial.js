@@ -27,9 +27,13 @@ const perf_hooks_1 = require("perf_hooks");
 function openDb() {
     return __awaiter(this, void 0, void 0, function* () {
         const db = new better_sqlite3_1.default('./data/animalfeatures_points.db');
-        db.pragma('journal_mode = WAL');
         // set cache to 1GB (in kibibytes)
+        db.pragma('locking_mode = EXCLUSIVE');
+        db.pragma('journal_mode = WAL');
         db.pragma('cache_size = -1000000');
+        db.pragma('synchronous = OFF');
+        // 1GB mmap size
+        db.pragma('mmap_size = 1000000000');
         return db;
     });
 }

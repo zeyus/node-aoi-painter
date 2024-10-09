@@ -13,9 +13,15 @@ import { performance } from 'perf_hooks';
 // setup sqlite3 database
 async function openDb(): Promise<DB> {
     const db = new Database('./data/animalfeatures_points.db');
-    db.pragma('journal_mode = WAL');
+    
     // set cache to 1GB (in kibibytes)
+    db.pragma('locking_mode = EXCLUSIVE');
+    db.pragma('journal_mode = WAL');
     db.pragma('cache_size = -1000000');
+    db.pragma('synchronous = OFF');
+    // 1GB mmap size
+    db.pragma('mmap_size = 1000000000');
+
     return db;
 }
 
